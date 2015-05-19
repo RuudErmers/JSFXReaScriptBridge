@@ -1,0 +1,11 @@
+function ToConsole(s)
+(
+    ShowConsoleMsg(s);
+);
+
+function JSFXOut(value)
+(
+  eval(sprintf(#,"JSFXOut(%d,%d,%d);",value));
+);
+
+

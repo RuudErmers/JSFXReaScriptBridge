@@ -1,0 +1,95 @@
+@import ../functions.eel
+
+function bufferFull(head,tail,size)
+(
+  (( head - tail + size ) % size == (size - 1)) ? 1 : 0;
+);
+
+function getSlider(nr) local(tr)
+(
+  tr = GetTrack(0,0);
+  n = TrackFX_GetParam(tr,0,nr-1,mini,maxi);
+  floor(n+0.5);
+);
+
+function setSlider(nr,value) local(tr)
+(
+  tr = GetTrack(0,0);
+  TrackFX_SetParam(tr,0,nr-1,value);
+);
+
+function init()
+(
+  RegReaSInHead  = 1;                      // written by JSFX
+  RegReaSInTail  = 2;                      // written by ReaS
+  RegReaSIn0     = 3;                      // written by JSFX
+  RegReaSOutHead = 21;                     // written by ReaS
+  RegReaSOutTail = 22;                     // written by JSFX
+  RegReaSOut0    = 23;                     // written by ReaS
+  ReaSBuffer     = 1000;
+  ReaSBufferSize = 256;
+  ReaSBufferHead = 0;
+  ReaSBufferTail = 0;
+
+  setSlider(RegReaSOutHead,0);
+  setSlider(RegReaSInTail,0);
+);
+
+function JSFXOut(value)
+(
+  ReaSBuffer[ReaSBufferHead] = value;
+  ReaSBufferHead = (ReaSBufferHead + 1) % ReaSBufferSize;
+);
+
+function ReasInput(value)
+(
+  (strlen(evalJSFXIn)>0) ?  eval(sprintf(#,"%s(%d)",evalJSFXIn,value));
+);
+
+function block() local(value,ok)
+(
+        // handle ReaS -> JSFX
+        ok=1;
+        while ((ReaSBufferTail!=ReaSBufferHead) && (ok == 1))
+        (
+          outHead = getSlider(RegReaSOutHead);
+          outTail = getSlider(RegReaSOutTail);
+          (!bufferFull(outHead,outTail,16)) ?
+            (
+              value =ReaSBuffer[ReaSBufferTail];
+              setSlider(RegReaSOut0+outHead,value);
+              ReaSBufferTail = (ReaSBufferTail+1) % ReaSBufferSize;
+              setSlider(RegReaSOutHead, (outHead+1) % 16);
+            ) : ok = 0;
+        );
+
+        // handle JSFX -> ReaS
+        while (getSlider(RegReaSInTail) != getSlider(RegReaSInHead))
+        (
+          value = getSlider(RegReaSIn0+getSlider(RegReaSInTail));
+          setSlider(RegReaSInTail,(1+getSlider(RegReaSInTail)) % 16);
+          ReaSInput(value);
+        );
+);
+
+function _loop()
+(
+   (strlen(evalloop)>0) ? eval(sprintf(#,"%s()",evalloop));
+   block();
+   defer("_loop()");
+);
+
+function main()
+(
+  init();
+  (strlen(evalsetup)>0) ? eval(sprintf(#,"%s()",evalsetup));
+  _loop();
+);
+
+function fwInitialize(setup,loop,JSFXIn)
+(
+  evalsetup  = setup;
+  evalloop   = loop;
+  evalJSFXIn = JSFXIn;
+  main();
+);

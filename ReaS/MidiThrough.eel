@@ -1,0 +1,31 @@
+@import lib/framework.eel
+@import lib/functions.eel
+
+function midiOut(data0,data1,data2)
+(
+  JSFXOut(+ (data0 << 16) + (data1 << 8) + (data2 << 0));
+);
+
+function onJSFXIn(value) local(cnr,cval)
+(
+  // leave status unchanged, add 1 to databyte0 and add 1 to databyte2
+  JSFXOut(value+257);
+  // output cbr,cval over SysEx
+  cnr = (value >> 8) & 0xFF;
+  cval = value & 0xFF;
+  midiOut(0xF0,0x35,cnr);
+  midiOut(cval,0xF7,0);
+);
+
+function setup()
+(
+  ToConsole("Welcome to the JSFX <-> ReaS bridge");
+);
+
+// to use the framework, call fwInitialize with 3 function callbacks:
+// 1. setup()
+// 2. loop()       // in this case: empty
+// 3. JSFXIn(value)
+
+fwInitialize("setup","","onJSFXIn");
+

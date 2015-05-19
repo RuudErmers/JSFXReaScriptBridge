@@ -1,0 +1,246 @@
+desc:Reascript JSFX Bridge
+// Author: Ruudjuh
+// sliders are double precision floating point
+// therefor 52 bits can be used as integer
+// After investigation, it turns out that sliders are 31 bits, if you convert them to bit-things!
+
+
+slider1:0<0,8589934592,1>JSFXOutHead
+slider2:0<0,8589934592,1>JSFXOutTail
+slider3:0<0,8589934592,1>JSFXOut0
+slider4:0<0,8589934592,1>JSFXOut1
+slider5:0<0,8589934592,1>JSFXOut2
+slider6:0<0,8589934592,1>JSFXOut3
+slider7:0<0,8589934592,1>JSFXOut4
+slider8:0<0,8589934592,1>JSFXOut5
+slider9:0<0,8589934592,1>JSFXOut6
+slider10:0<0,8589934592,1>JSFXOut7
+slider11:0<0,8589934592,1>JSFXOut8
+slider12:0<0,8589934592,1>JSFXOut9
+slider13:0<0,8589934592,1>JSFXOut10
+slider14:0<0,8589934592,1>JSFXOut11
+slider15:0<0,8589934592,1>JSFXOut12
+slider16:0<0,8589934592,1>JSFXOut13
+slider17:0<0,8589934592,1>JSFXOut14
+slider18:0<0,8589934592,1>JSFXOut15
+slider19:0<0,8589934592,1>Debug0 (Slider19)
+slider20:0<0,8589934592,1>Debug1 (Slider20)
+slider21:0<0,8589934592,1>JSFXInHead
+slider22:0<0,8589934592,1>JSFXInTail
+slider23:0<0,8589934592,1>JSFXIn0
+slider24:0<0,8589934592,1>JSFXIn1
+slider25:0<0,8589934592,1>JSFXIn2
+slider26:0<0,8589934592,1>JSFXIn3
+slider27:0<0,8589934592,1>JSFXIn4
+slider28:0<0,8589934592,1>JSFXIn5
+slider29:0<0,8589934592,1>JSFXIn6
+slider30:0<0,8589934592,1>JSFXIn7
+slider31:0<0,8589934592,1>JSFXIn8
+slider32:0<0,8589934592,1>JSFXIn9
+slider33:0<0,8589934592,1>JSFXIn10
+slider34:0<0,8589934592,1>JSFXIn11
+slider35:0<0,8589934592,1>JSFXIn12
+slider36:0<0,8589934592,1>JSFXIn13
+slider37:0<0,8589934592,1>JSFXIn14
+slider38:0<0,8589934592,1>JSFXIn15
+
+@init
+
+function bufferFull(head,tail,size)
+(
+  (( head - tail + size ) % size == (size - 1)) ? 1 : 0;
+);
+
+function setSlider(index,value)
+(
+  (index == 1) ? slider1 = value;
+  (index == 2) ? slider2 = value;
+  (index == 3) ? slider3 = value;
+  (index == 4) ? slider4 = value;
+  (index == 5) ? slider5 = value;
+  (index == 6) ? slider6 = value;
+  (index == 7) ? slider7 = value;
+  (index == 8) ? slider8 = value;
+  (index == 9) ? slider9 = value;
+  (index == 10) ? slider10 = value;
+  (index == 11) ? slider11 = value;
+  (index == 12) ? slider12 = value;
+  (index == 13) ? slider13 = value;
+  (index == 14) ? slider14 = value;
+  (index == 15) ? slider15 = value;
+  (index == 16) ? slider16 = value;
+  (index == 17) ? slider17 = value;
+  (index == 18) ? slider18 = value;
+  (index == 19) ? slider19 = value;
+  (index == 20) ? slider20 = value;
+  (index == 21) ? slider21 = value;
+  (index == 22) ? slider22 = value;
+  (index == 23) ? slider23 = value;
+  (index == 24) ? slider24 = value;
+  (index == 25) ? slider25 = value;
+  (index == 26) ? slider26 = value;
+  (index == 27) ? slider27 = value;
+  (index == 28) ? slider28 = value;
+  (index == 29) ? slider29 = value;
+  (index == 30) ? slider30 = value;
+  (index == 31) ? slider31 = value;
+  (index == 32) ? slider32 = value;
+  (index == 33) ? slider33 = value;
+  (index == 34) ? slider34 = value;
+  (index == 35) ? slider35 = value;
+  (index == 36) ? slider36 = value;
+  (index == 37) ? slider37 = value;
+  (index == 38) ? slider38 = value;
+  (index == 39) ? slider39 = value;
+  (index == 40) ? slider40 = value;
+);
+
+function getSlider(index) local(value)
+(
+  (index == 1) ? value = slider1 ;
+  (index == 2) ? value = slider2 ;
+  (index == 3) ? value = slider3 ;
+  (index == 4) ? value = slider4 ;
+  (index == 5) ? value = slider5 ;
+  (index == 6) ? value = slider6 ;
+  (index == 7) ? value = slider7 ;
+  (index == 8) ? value = slider8 ;
+  (index == 9) ? value = slider9 ;
+  (index == 10) ? value = slider10 ;
+  (index == 11) ? value = slider11 ;
+  (index == 12) ? value = slider12 ;
+  (index == 13) ? value = slider13 ;
+  (index == 14) ? value = slider14 ;
+  (index == 15) ? value = slider15 ;
+  (index == 16) ? value = slider16 ;
+  (index == 17) ? value = slider17 ;
+  (index == 18) ? value = slider18 ;
+  (index == 19) ? value = slider19 ;
+  (index == 20) ? value = slider20 ;
+  (index == 21) ? value = slider21 ;
+  (index == 22) ? value = slider22 ;
+  (index == 23) ? value = slider23 ;
+  (index == 24) ? value = slider24 ;
+  (index == 25) ? value = slider25 ;
+  (index == 26) ? value = slider26 ;
+  (index == 27) ? value = slider27 ;
+  (index == 28) ? value = slider28 ;
+  (index == 29) ? value = slider29 ;
+  (index == 30) ? value = slider30 ;
+  (index == 31) ? value = slider31 ;
+  (index == 32) ? value = slider32 ;
+  (index == 33) ? value = slider33 ;
+  (index == 34) ? value = slider34 ;
+  (index == 35) ? value = slider35 ;
+  (index == 36) ? value = slider36 ;
+  (index == 37) ? value = slider37 ;
+  (index == 38) ? value = slider38 ;
+  (index == 39) ? value = slider39 ;
+  (index == 40) ? value = slider40 ;
+  value;
+);
+
+function ReaSOut(value)
+(
+  JSFXBuffer[JSFXBufferHead] = value;
+  JSFXBufferHead = (JSFXBufferHead + 1) % JSFXBufferSize;
+);
+
+function midiOut(value)
+(
+  midisend(0, (value >> 16) & 0xFF, (value >> 8) & 0xFF, (value >> 0) & 0xFF);
+);
+
+///// AppStart
+/////////////// Use ReaSOutput and midiOutput to get things done...
+// in this example we send data to sysEx or midiOut.
+// value is 4 bytes.
+// SysEx: If the first byte = $F0 all bytes after that are stored in a buffer until $F7 is encountered
+// Normal: otherwise it is send to midiOut
+// state is captured in AppState:
+// 0: Normal
+// 1: Processing SysEx
+
+SysExBuffer = 2000;
+SysExP      = 0;
+AppState    = 0;
+
+function ToSysEx(value)
+(
+  slider20 = slider20+11;
+  SysExBuffer[SysExP]=value;
+  SysExP +=1;
+  (value == 0xF7) ?
+    ( AppState = 0;
+      slider20 = slider20+111;
+      midisend_buf(0,SysExBuffer,SysExP);
+    );
+);
+
+function ReaSIn(value)
+(
+  (AppState == 0) ?
+   (
+    ((value >> 16 ) & 0xFF == 0xF0) ?
+    (
+      SysExP = 0;
+      AppState=1;
+    ) : midiOut(value);
+   );
+  (AppState == 1) ? ToSysEx((value >> 16) & 0xFF);
+  (AppState == 1) ? ToSysEx((value >> 8) & 0xFF);
+  (AppState == 1) ? ToSysEx((value >> 0) & 0xFF);
+);
+
+function midiIn(value)
+(
+  ReaSOut(value);
+);
+
+//////// AppEnd
+
+//////////////////////////////////////////////////////////////////////////
+
+RegJSFXOutHead = 1;                      // written by JSFX
+RegJSFXOutTail = 2;                      // written by ReaS
+RegJSFXOut0    = 3;                      // written by JSFX
+RegJSFXInHead  = 21;                     // written by ReaS
+RegJSFXInTail  = 22;                     // written by JSFX
+RegJSFXIn0     = 23;                     // written by ReaS
+JSFXBuffer     = 1000;
+JSFXBufferSize = 256;
+JSFXBufferHead = 0;
+JSFXBufferTail = 0;
+
+setSlider(RegJSFXOutHead,0);
+setSlider(RegJSFXInTail,0);
+
+
+@block
+        // handle MidiIn
+        while (midirecv(mpos, msg1, msg2, msg3)) (
+          midiIn(msg1 << 16 + msg2 << 8+ msg3);
+        );
+
+        // handle JSFX -> ReaS
+        ok=1;
+        while ((JSFXBufferTail!=JSFXBufferHead) && (ok == 1))
+        (
+          outHead = getSlider(RegJSFXOutHead);
+          outTail = getSlider(RegJSFXOutTail);
+          (!bufferFull(outHead,outTail,16)) ?
+            (
+              setSlider(RegJSFXOut0+outHead,JSFXBuffer[JSFXBufferTail]);
+              JSFXBufferTail = (JSFXBufferTail+1) % JSFXBufferSize;
+              setSlider(RegJSFXOutHead, (outHead+1) % 16);
+            ) : ok = 0;
+        );
+
+        // handle ReaS -> JSFX
+        while (getSlider(RegJSFXInTail) != getSlider(RegJSFXInHead))
+        (
+          value = getSlider(RegJSFXIn0+getSlider(RegJSFXInTail));
+          setSlider(RegJSFXInTail,(1+getSlider(RegJSFXInTail)) % 16);
+          ReaSIn(value);
+        );
+
