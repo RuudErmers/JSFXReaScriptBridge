@@ -32,6 +32,11 @@ In the supplied example, also midiSysEx is implemented, but that is just an exam
 2. MidiThrough.eel
 
 Uses a small frameworks, which hides all communication details.
+You only have to do add your code to the framework in the main file (in this case MidiThrough.eel).
+(The other files are for making the framework work, offcourse you can get a peek or edit to your likes!)
+
+So open MidiThrough.eel
+
 To initialize the framework, call fwInitialize:
 
 // to use the framework, call fwInitialize with 3 function callbacks:
@@ -55,13 +60,13 @@ JSFXOut,   which writes a value to the ReasJSFXBridge
 
 The code: 
 
-Communication is achieved using the Sliders interface. This works remarkably  fast.
+Communication is achieved using the Sliders interface. This works remarkably fast.
 Both parts also use an extra ringbuffer of 256 bytes. Since you have the source you can easily adjust this to your needs.
 Both parts place the ringbuffer at address 1000, so don't use that.
 In my example I also use a SysEx buffer starting from 2000 (in ReasJSFXBridge code only).
 
 I am new to EEL and am more used to C, so therefore I may have solved some things (like callback function) somewhat oddly.
-The part with the sliders code in ReasJSFXBridge (getSlider/setSlider) is pretty ugly/stupid, but I have not investedd time to get a better solution. 
+The part with the sliders code in ReasJSFXBridge (getSlider/setSlider) is pretty ugly/stupid, but I have not invested time to get a better solution. 
 If you have remarks please mail them!
 
 (Note: I will not maintain this repo, it is for startcode only...)
