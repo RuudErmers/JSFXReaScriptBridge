@@ -1,6 +1,76 @@
+// functions use adresses 1380-1700
+
 function ToConsole(s)
 (
     ShowConsoleMsg(s);
+);
+
+function matchplugin(pluginname,trIndex,fxIndex) local(tr)
+(
+  ok = 0;
+  (trIndex<GetNumTracks()) ?
+   (
+     track = GetTrack(0,trIndex);
+     (fxIndex<TrackFX_GetCount(track)) ?
+     (
+       s=1400;
+       TrackFX_GetFXName(tr,fxIndex,s);
+       ok = matchi(sprintf(#,"*%s*",pluginname),s);
+     )
+   );
+  ok;
+);
+
+function findplugin(pluginname,varargs) local(tr,trCount,trIndex,fxCount,fxIndex,s,t)
+(
+  found = 0;
+  trCount = GetNumTracks();
+  trIndex = 0;
+  s = 1400;
+  while (trIndex<trCount && !found)
+  (
+    tr = GetTrack(0,trIndex);
+    GetSetMediaTrackInfo_String(tr, "P_NAME",s,0);
+//    ToConsole(sprintf(#,"Trackname: %s\n",s));
+    fxCount = TrackFX_GetCount(tr);
+//    ToConsole(sprintf(#,"FXCount %d\n",fxCount));
+    fxIndex = 0;
+    while (fxIndex<fxCount  && !found)
+    (
+      TrackFX_GetFXName(tr,fxIndex,s) ?
+      (
+         t=sprintf(#,"*%s*",pluginname);
+         found = matchi(t,s);
+         found ?
+         (
+           varargs[0]=trIndex;
+           varargs[1]=fxIndex;
+
+           ToConsole(sprintf(#,"Track: %d Plugin: %d  \n",trIndex,fxIndexs));
+         );
+//         ToConsole(sprintf(#,"Track: %d Plugin: %d %s \n",trIndex,fxIndex,s));
+      );
+      fxIndex+=1;
+    );
+    trIndex+=1;
+  );
+  found;
+);
+
+function checkJSFX(trfx) local(pluginname)
+(
+  pluginname = "ReasJSFXBridge";
+  !matchplugin(pluginname,trfx[0],trfx[1]) ?
+    findplugin(pluginname,trfx)
+  :1;
+);
+
+function JSFXRunning() local (_trfx)
+(
+  _trfx = 1380;
+  _trfx[0] = 0;
+  _trfx[1] = 0;
+  checkJSFX(_trfx);
 );
 
 function JSFXOut(value)

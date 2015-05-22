@@ -19,7 +19,9 @@ function onJSFXIn(value) local(cnr,cval)
 
 function setup()
 (
-  ToConsole("Welcome to the JSFX <-> ReaS bridge");
+  ToConsole("");
+  ToConsole("Welcome to the JSFX <-> ReaS bridge\n");
+  ToConsole(JSFXRunning() ? "JSFX is running" : "JSFX is not (yet) running!");
 );
 
 // to use the framework, call fwInitialize with 3 function callbacks:

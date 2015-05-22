@@ -43,6 +43,8 @@ slider35:0<0,8589934592,1>JSFXIn12
 slider36:0<0,8589934592,1>JSFXIn13
 slider37:0<0,8589934592,1>JSFXIn14
 slider38:0<0,8589934592,1>JSFXIn15
+slider39:0<0,8589934592,1>Debug2 (Slider39)
+slider40:0<0,8589934592,1>Debug3 (Slider40)
 
 @init
 
@@ -197,6 +199,23 @@ function midiIn(value)
   ReaSOut(value);
 );
 
+function checkSlider(index,upper)
+(
+  (getSlider(index)>= upper) ? setSlider(index,0);
+);
+
+function checkSliders()
+// check if some sliders are out of range,probably locking up this app.
+// should not happen, but better to check than to be sorry.
+(
+   checkSlider(RegJSFXOutHead,16);
+   checkSlider(RegJSFXOutTail,16);
+   checkSlider(RegJSFXInHead,16);
+   checkSlider(RegJSFXInTail,16);
+   checkSlider(JSFXBufferHead,256);
+   checkSlider(JSFXBufferTail,256);
+);
+
 //////// AppEnd
 
 //////////////////////////////////////////////////////////////////////////
@@ -212,7 +231,10 @@ JSFXBufferSize = 256;
 JSFXBufferHead = 0;
 JSFXBufferTail = 0;
 
+// empty buffers
 setSlider(RegJSFXOutHead,0);
+setSlider(RegJSFXOutTail,0);
+setSlider(RegJSFXInHead,0);
 setSlider(RegJSFXInTail,0);
 
 
@@ -221,9 +243,11 @@ setSlider(RegJSFXInTail,0);
         while (midirecv(mpos, msg1, msg2, msg3)) (
           midiIn(msg1 << 16 + msg2 << 8+ msg3);
         );
+        checkSliders();
 
         // handle JSFX -> ReaS
         ok=1;
+        processed = 0;
         while ((JSFXBufferTail!=JSFXBufferHead) && (ok == 1))
         (
           outHead = getSlider(RegJSFXOutHead);
@@ -234,13 +258,19 @@ setSlider(RegJSFXInTail,0);
               JSFXBufferTail = (JSFXBufferTail+1) % JSFXBufferSize;
               setSlider(RegJSFXOutHead, (outHead+1) % 16);
             ) : ok = 0;
+          processed +=1;
+          (processed>16) ? ( ok = 0; checkSliders(); ); // this should not happen...
         );
 
         // handle ReaS -> JSFX
-        while (getSlider(RegJSFXInTail) != getSlider(RegJSFXInHead))
+        ok=1;
+        processed = 0;
+        while (getSlider(RegJSFXInTail) != getSlider(RegJSFXInHead) && (ok==1))
         (
           value = getSlider(RegJSFXIn0+getSlider(RegJSFXInTail));
           setSlider(RegJSFXInTail,(1+getSlider(RegJSFXInTail)) % 16);
           ReaSIn(value);
+          processed +=1;
+          (processed>16) ? ( ok = 0; checkSliders(); ); // this should not happen...
         );
 
