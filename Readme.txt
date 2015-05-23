@@ -1,8 +1,11 @@
 This is a set of files which enables a bridge between JFSX and ReaScript.
 It is for use in Reaper.
+
 The main use is to communicate between a JSFX plugin and a ReaScript.
 I was not able to find a solution for that so I build this.
 See e.g. this thread http://forum.cockos.com/showthread.php?t=155018
+
+Please read Readme2.Txt as well, as you will see that this repo also includes a TCP Bridge now!
 
 To get things working, here is an example where MIDI input is read by the JSFX bridge and is send to 
 a ReaScript "MidiThrough". This Reascript sends some modified data to JSFX Bridge which outputs this over Midi.
