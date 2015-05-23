@@ -1,0 +1,184 @@
+// framework uses addresses
+// 1000-1300 (buffer)
+// 1400-1700 (functions)
+
+@import ../functions.eel
+
+// protocol is as follows:
+// it mimics MIDI In/Out
+// it is send as hexstring
+// it sends three bytes
+// Midi event is followed by #
+// so, the midi event 0x90 0x50 0x4A is send as:
+// 90504A#
+// SysEx starts with F0 and is divided over multiple messages. The last message contains a F7
+// receivebuffer wil store value as 24 bits
+// in this case 1 item is used with value 0x90504A
+
+function checkConnectionClose(close,open)
+(
+  (tcp_send(connection,"#") <= 0) ?
+    (
+       tcp_close(connection);
+       connection = 0;
+       (strcmp(close,"")) ? ToConsole(close);
+    ) : ( strcmp(open,"")) ? ToConsole(open);
+);
+
+function checkConnection()
+(
+  (connection <= 0) ? (
+    connection = tcp_connect("127.0.0.1",1200,0); // non blocking connection
+    (connection > 0) ?
+      checkConnectionClose("","Server Found and connected\n");
+  ) :
+  (connectionTime < time()) ?
+   (
+      connectionTime = time();
+      checkConnectionClose("Server Aborted\n","");
+   )
+);
+
+function sendString(s)
+(
+  checkConnection();
+  (connection>0) ? (
+     tcp_send(connection,s);
+     checkConnectionClose("Server Aborted\n","");
+  )
+);
+
+function midiOut(status,data1,data2)
+(
+  sendString(sprintf(#,"%02X%02X%02X",status,data1,data2));
+);
+
+function putBuffer(Value)
+(
+  globalReceiveBuffer[globalReceiveBufferHead] = value;
+  globalReceiveBufferHead = (globalReceiveBufferHead + 1) % globalReceiveBufferSize;
+);
+
+function AddIntIn(n)
+(
+  (ValuesReceived == 0 ) ?
+    (ReceivedValue = n)
+  :
+    (ReceivedValue = 256*ReceivedValue + n);
+  ValuesReceived +=1;
+  (n == 0xF7) ?
+    (
+      while (ValuesReceived<3)
+       (
+         ReceivedValue = ReceivedValue*256;
+         ValuesReceived +=1;
+       )
+    );
+  (ValuesReceived == 3) ?
+  (
+    putBuffer(ReceivedValue);
+    ValuesReceived = 0;
+  );
+);
+
+function addCharIn(n)
+(
+  (secondNibble) ? ( addIntIn(hiNibble+n); secondNibble = 0; )
+               : ( hiNibble = 16 *n;  secondNibble = 1; );
+);
+
+function endChar()
+(
+  secondNibble = 0;
+  ValuesReceived = 0;
+);
+
+function addToReceiveBuffer(nrBytes) local(i,v)
+(
+// B01105#
+  ToConsole(sprintf(#,"Data Received: %d\n",nrBytes));
+  ToConsole(localReceiveBuffer);
+
+  i=0;
+  while (i<nrBytes)
+  (
+    v=str_getchar(localReceiveBuffer,i);
+
+    (v>=48 && v<=57) ? addCharIn(v-48) :
+    (v>=65 && v<=70) ? addCharIn(v-65+10) :
+    (v>=97 && v<=102) ? addCharIn(v-97+10) :
+      endChar();
+    i +=1;
+  );
+);
+
+function checkReceive() local(nrBytes)
+(
+  checkConnection();
+  (connection>0) ? (
+    localReceiveBuffer = 1200;
+    nrBytes = tcp_recv(connection,localReceiveBuffer,localReceiveBufferSize);
+    (nrBytes>0) ? addToReceiveBuffer(nrBytes) ;
+  );
+);
+
+function init()
+(
+  prg=0;
+  connection = 0;
+  connectionTime = 0;
+  globalReceiveBuffer = 1000;
+  globalReceiveBufferSize = 200;
+  globalReceiveBufferHead = 0;
+  globalReceiveBufferTail = 0;
+  localReceiveBuffer = 1200;
+  localReceiveBufferSize = 100;
+  ReceivedValue=0;
+  ValuesReceived=0;
+  secondNibble=0;
+  hiNibble=0;
+  checkConnection();
+);
+
+function FrameworkRunning()
+(
+  (connection>0);
+);
+
+function ValueOut(value)
+(
+  sendString(sprintf(#,"%02X%02X%02X",(value >> 16) & 0xFF, (value >> 8) & 0xFF, value & 0xFF));
+);
+
+function block()
+(
+  checkReceive();
+  while (globalReceiveBufferTail!=globalReceiveBufferHead)
+  (
+     value = globalReceiveBuffer[globalReceiveBufferTail];
+     globalReceiveBufferTail= (globalReceiveBufferTail + 1) % globalReceiveBufferSize;
+     (strlen(evalValueIn)>0) ?  eval(sprintf(#,"%s(%d)",evalValueIn,value));
+  )
+);
+
+function _loop()
+(
+   (strlen(evalloop)>0) ? eval(sprintf(#,"%s()",evalloop));
+   block();
+   defer("_loop()");
+);
+
+function main()
+(
+  init();
+  (strlen(evalsetup)>0) ? eval(sprintf(#,"%s()",evalsetup));
+  _loop();
+);
+
+function fwInitialize(setup,loop,ValueIn)
+(
+  evalsetup  = setup;
+  evalloop   = loop;
+  evalValueIn = ValueIn;
+  main();
+);

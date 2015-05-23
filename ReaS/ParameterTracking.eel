@@ -1,0 +1,431 @@
+@import lib/framework.eel
+@import lib/functions.eel
+
+// This programs scans reaper for program and parameter changes
+// Maximum sizes supported:
+// 64+2 tracks
+// 1 VSTi pre track
+// 512 parameters per VSTi
+// adresses used:
+// SysExBuffer = 2000
+// presetMemory 2100 - 2165
+// parameterMemory: 2200 - 36892 ( 66 x 512)
+
+function ToConsole(s)
+(
+    ShowConsoleMsg(s);
+);
+
+function midiOut(data0,data1,data2)
+(
+  JSFXOut(+ (data0 << 16) + (data1 << 8) + (data2 << 0));
+);
+
+function parameterChange(trIndex,fxIndex,parameter,value)
+// fxtrack must be larger than 1
+// plugins are counted from 0..15
+(
+//  ToConsole(sprintf(#,"Parameter Change %d %d %d %d \n",trIndex,fxIndex,parameter,value));
+  (noParameterChanges < time()) ?
+  (
+    midiOut(0xF0,0x25,trIndex);
+//    midiOut(0x52,(parameter >> 7) & 0x7F,parameter & 0x7F);
+//    midiOut(0x10+fxIndex,value,0xF7);  // 0x10: parameter change
+    midiOut(0x52,parameter & 0x7F,value);
+    midiOut((parameter >> 7) & 0x7F,0x10+fxIndex,0xF7);  // 0x10: parameter change
+  )
+);
+
+function programInfo(trIndex,fxIndex,program,s,cmd) local(i)
+(
+  midiOut(0xF0,0x25,trIndex);
+  midiOut(0x52,0,program);
+  midiOut(0,cmd+fxIndex,str_getchar(s,0));
+  i = 0;
+  while (i<strlen(s))
+  (
+    midiOut(str_getchar(s,i+1),str_getchar(s,i+2),str_getchar(s,i+3));
+    i+=3;
+  );
+  midiOut(0,0,0xF7);
+);
+
+function programChange(trIndex,fxIndex,program,s)
+(
+  (noProgramChanges < time()) ?
+  programInfo(trIndex,fxIndex,program,s,0x20);
+);
+
+function programName(trIndex,fxIndex,program,s)
+(
+  programInfo(trIndex,fxIndex,program,s,0x30);
+);
+
+function sendProgramNames(trIndex) local (fxIndex,prs,numpresets,s)
+(
+
+  noProgramChanges = time()+10;
+  noParameterChanges = time() + 10;
+  track = GetTrack(0,trIndex);
+  fxIndex  = TrackFX_GetInstrument(track);
+
+  (fxIndex>=0) ?
+   (
+      prs=0;
+      while (TrackFX_SetPresetByIndex(track,fxIndex,prs) && prs<64)
+      (
+        prs+=1;
+        TrackFX_GetPreset(track,fxIndex,s);
+        programName(trIndex,fxIndex,prs,s);
+        sleep(100);
+        noProgramChanges = time()+10;
+        noParameterChanges = time() + 10;
+      );
+   )
+);
+
+function AppGetParam(trIndex,parmIndex) local(result)
+(
+  parameterMemory = 2200;
+  result = parameterMemory[512*trIndex+parmIndex];
+//  ToConsole(sprintf(#,"Getting index: %d value: %d \n",parmIndex,result));
+  result;
+);
+
+function AppSetParam(trIndex,parmIndex,value)
+(
+  parameterMemory = 2200;
+//  ToConsole(sprintf(#,"Setting Index: %d Value: %d\n",parmIndex,value));
+  parameterMemory[512*trIndex+parmIndex]=value;
+//  ToConsole(sprintf(#,"Getting set Value: %d\n",AppGetParam(trIndex,fxIndex,parmIndex)));
+);
+
+// nrpn only modifies data1, that value is returned;
+function nrpn(value) local(status,data1,data2,  nrpnIdle,  nrpnFirstCC,  nrpnSecondCC,  MIDI_CC, NRPN_HICC, NRPN_LOCC)
+(
+  status = (value >> 16 ) & 0xF0;
+  data1  = (value >> 8  ) & 0xFF;
+  data2  = value & 0xFF;
+  nrpnIdle=0;
+  nrpnFirstCC=1;
+  nrpnSecondCC=2;
+  MIDI_CC = 0xB0;
+  NRPN_HICC = 99;
+  NRPN_LOCC = 98;
+
+  //
+  done = 0;
+  while (!done)
+  (
+    done = 1;
+    (status<0xF0) ?
+    (
+      (MidiInStatus == nrpnIdle) ?
+        (
+           (status == MIDI_CC && data1 == NRPN_HICC) ?
+            (
+                 MidiInHiCC=Data2;
+                 MidiInStatus=nrpnFirstCC;
+                 data1 = -1;
+            );
+        ) :
+      (MidiInStatus == nrpnFirstCC) ?
+        (
+           (status == MIDI_CC && data1 == NRPN_LOCC) ?
+            (
+                 MidiInLoCC=Data2;
+                 MidiInStatus=nrpnSecondCC;
+                 data1 = -1;
+            )
+            :
+            (
+              MidiInStatus=nrpnIdle;
+              data1 = -1;
+            )
+        ) :
+      (MidiInStatus == nrpnSecondCC) ?
+        (
+           (status == MIDI_CC && data1 == 6) ?
+            (
+              data1 = 0x80 * MidiInHiCC+ MidiInLoCC;
+            )
+            :
+            (
+              MidiInStatus=nrpnIdle;  // retry
+              done = 0;
+            )
+        );
+      );
+  );
+  data1;
+);
+
+function openPlugin(trIndex) local(fxIndex)
+(
+   track = GetTrack(0,trIndex);
+   fxIndex  = TrackFX_GetInstrument(track);
+   (fxIndex<0) ? fxIndex = 0;
+   TrackFX_Show(track,fxIndex,3);
+);
+
+function closePlugin(trIndex)
+(
+   track = GetTrack(0,trIndex);
+   fxIndex  = TrackFX_GetInstrument(track);
+   (fxIndex<0) ? fxIndex = 0;
+   TrackFX_Show(track,fxIndex,2);
+   TrackFX_Show(track,0,0);
+);
+
+function closeAllPlugins() local(trIndex,trCount)
+(
+  trIndex = 0;
+  trCount = GetNumTracks();
+  while (trIndex<trCount)
+   (
+     closePlugin(trIndex);
+     trIndex+=1;
+   )
+);
+
+function hostCommand(command,midichannel)
+(
+// 0	ShowMain	= HideAllPlugin ,Show Mixer
+// 1	HideMain	= Hide Mixer
+// 2    GetPrograms
+  (command == 0) ?
+   (
+     ToConsole("Close All Plugins....");
+     closeAllPlugins();
+   );
+  (command == 2) ?
+    sendProgramNames(midichannel);
+);
+
+function setTempo(value)
+(
+  OscLocalMessageToHost("/tempo/raw",value);
+);
+
+function setTrackVolume(track, value) local (volume,oldVolume)
+(
+  x = value / 127;
+  x = x*x*x;
+  volume = 4*log( x + 1)/log(2);   // geen idee, maar dit is behoorlijk goed.
+  SetMediaTrackInfo_Value(track,"D_VOL",volume);
+);
+
+function setGeneralVolume(value)
+(
+  track = GetMasterTrack();
+  setTrackVolume(track,value);
+);
+
+function setVolume(trIndex,value)
+(
+  track = GetTrack(0,trIndex);
+  setTrackVolume(track,value);
+);
+
+function setEnabled(trIndex,value)
+(
+  track = GetTrack(0,trIndex);
+  SetMediaTrackInfo_Value(track,"B_MUTE ",!value);
+);
+
+function onHostCommand(midichannel,status,data1,data2) local(MIDI_CC)
+(
+  MIDI_CC = 0xB0;
+  ((status & 0xF0 == MIDI_CC)) ?
+  (
+    (data1 == 161) ?
+       setVolume(midichannel,data2);
+    (data1 == 162) ?
+       setEnabled(midichannel,data2);
+    (data1 == 164) ?
+       openPlugin(midichannel);
+    (data1 == 165) ?
+       setGeneralVolume(data2);
+    (data1 == 180) ?
+       hostCommand(data2,midichannel);
+    (data1 == 181) ?
+       closePlugin(midichannel);
+    (data1 == 179) ?
+       setTempo(60+data2);
+  )
+);
+
+function onJSFXInMidiEvent(value) local(midichannel,status,data1,data2) // this will be removed in the near future...
+(
+  midichannel =0; // er moet iets staan...
+/*
+  status = (value >> 16 ) & 0xFF;
+  midichannel = (value >> 16 ) & 0xF;
+  data1  = nrpn(value);
+  data2  = value & 0xFF;
+  (data1>=0)
+  (
+    midichannel += floor(data1/1000);
+    data1 = data1 % 1000;
+    onHostCommand(midichannel,status,data1,data2);
+  );  */
+);
+
+function onJSFXInSysExEvent(sysExLength) local(midichannel,status,data1,data2)
+(
+// I only understand RuudEx, so lets check for that...
+   (sysExBuffer[0]==0xF0 && sysExBuffer[1]==0x25 && sysExBuffer[sysExLength-1]==0xF7) ?
+   (
+     while (sysExLength<8) ( sysExBuffer[sysExLength-1]=0; sysExLength+=1; );
+
+     ToConsole("SysEx Event");
+     midichannel = sysExBuffer[2];
+     status      = sysExBuffer[3] < 16 ? sysExBuffer[3] << 4 : sysExBuffer[3];
+     data1=sysExBuffer[4]+128*sysExBuffer[6];
+     data2=sysExBuffer[5]+128*sysExBuffer[7];
+     ToConsole(sprintf(#,"SysEx Event %d %d %d %d\n ",midichannel,status,data1,data2));
+     onHostCommand(midichannel,status,data1,data2);
+   );
+);
+
+function onJSFXInSysEx_(databyte)
+(
+   (sysExLength<100-1) ?
+   (
+     sysExBuffer[sysExLength] = databyte;
+     sysExLength+=1;
+   );
+   (databyte == 0xF7)  ?
+   (
+      onJSFXInSysExEvent(sysExLength);
+      SysExState=0;
+   )
+);
+
+function onJSFXInSysEx(value)
+(
+   onJSFXInSysEx_((value >> 16) & 0xFF);
+   (SysExState==1) ? onJSFXInSysEx_((value >> 8) & 0xFF);
+   (SysExState==1) ? onJSFXInSysEx_((value >> 0) & 0xFF);
+);
+
+function onJSFXIn(value) local(status)
+(
+  status = (value >> 16 ) & 0xFF;
+  (status == 0xF0) ? ( sysExLength=0; SysExState = 1; );
+  (SysExState == 1) ?
+     onJSFXInSysEx(value)
+   :
+     onJSFXInMidiEvent(value);
+);
+
+function checkPreset(trIndex,fxIndex,presetIndex) local(s)
+(
+  presetMemory = 2100;
+//  ToConsole((sprintf(#,"Program Change track=%d old=%d new=%d\n",trIndex,presetMemory[trIndex], presetIndex)));
+
+  (presetMemory[trIndex] != presetIndex) ?
+   (
+     ToConsole("Program Change\n");
+     presetMemory[trIndex] = presetIndex;
+     track = GetTrack(0,trIndex);
+     TrackFX_GetFXName(track,fxIndex,s);
+     programChange(trIndex,0,presetIndex,s);
+   )
+);
+
+function AppConvertParam(param,min,max) local(result)
+(
+  (param <= min) ? result =0 :
+  (
+    (param>=max) ? result = 127 :
+    (
+      result = floor((0.5+(127*(param-min)/(max-min))));
+    )
+  );
+  result;
+);
+
+function checkTrackParameters(trIndex) local(paramCount,paramIndex,fParamValue,iParamValue,currValue,min,max)
+(
+     track = GetTrack(0,trIndex);
+     fxIndex  = TrackFX_GetInstrument(track);
+
+     (fxIndex>=0) ?
+     (
+       paramCount = TrackFX_GetNumParams(track,fxIndex);
+       (paramCount>512) ? paramCount = 512;
+       paramIndex = 0;
+       while (paramIndex < paramCount)
+       (
+          fParamValue = TrackFX_GetParam(track,fxIndex,paramIndex,min,max);
+          iParamValue = AppConvertParam(fParamValue,min,max);
+          currValue   = AppGetParam(trIndex,paramIndex);
+          (iParamValue != currValue) ?
+          (
+            parameterChange(trIndex,fxIndex,paramIndex,iParamValue);
+            AppSetParam(trIndex,paramIndex,iParamValue);
+          );
+          paramIndex +=1;
+       )
+     )
+);
+
+function checkPresets() local(trCount,trIndex,fxIndex,dummy)
+(
+  trCount = GetNumTracks();
+  trIndex = 0;
+  while (trIndex<trCount)
+  (
+     track = GetTrack(0,trIndex);
+     fxIndex  = TrackFX_GetInstrument(track);
+     (fxIndex>=0) ?
+     (
+       n=TrackFX_GetPresetIndex(track,fxIndex,dummy);
+       //ToConsole(sprintf(#,"Preset: %d %d %d \n", trIndex, fxIndex, n));
+       checkPreset(trIndex,fxIndex,n);
+     );
+    trIndex+=1;
+  );
+);
+
+function checkParameters()
+(
+  checkTrackParameters(trackExamineParameters);
+  trackExamineParameters+=1;
+  (trackExamineParameters>=GetNumTracks()) ?
+     trackExamineParameters=0;
+);
+
+function loop()
+(
+  checkPresets();
+  checkParameters();
+);
+
+function setup()
+(
+  ToConsole("");
+  ToConsole("Welcome to the JSFX <-> ReaS bridge: Parameter Checking\n");
+  ToConsole(JSFXRunning() ? "JSFX is running\n\n" : "JSFX is not (yet) running!\n\n");
+  noProgramChanges = 0;
+  noParameterChanges = 0;
+  track = 0;
+  trackExamineParameters = 0;
+  MidiInStatus = 0;
+  sysExBuffer = 2000;
+  sysExLength = 0;
+  presetMemory = 2100;
+  parameterMemory = 2200;
+  SysExState = 0;
+);
+
+// to use the framework, call fwInitialize with 3 function callbacks:
+// 1. setup()
+// 2. loop()
+// 3. JSFXIn(value)
+
+fwInitialize("setup","loop","onJSFXIn");
+
+
+

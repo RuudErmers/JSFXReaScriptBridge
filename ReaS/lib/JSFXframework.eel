@@ -1,0 +1,126 @@
+// framework uses addresses
+// 1000-1300 (buffer
+// 1400-1700 (functions)
+
+@import ../functions.eel
+
+
+function bufferFull(head,tail,size)
+(
+  (( head - tail + size ) % size == (size - 1)) ? 1 : 0;
+);
+
+function getSlider(nr) local (tr)
+(
+  tr = GetTrack(0,trfx[0]);
+  n = TrackFX_GetParam(tr,trfx[1],nr-1,mini,maxi);
+
+  floor(n+0.5);
+);
+
+function checkJSFX(trfx) local(pluginname)
+(
+  pluginname = "ReasJSFXBridge";
+  !matchplugin(pluginname,trfx[0],trfx[1]) ?
+    findplugin(pluginname,trfx)
+  :1;
+);
+
+function FrameworkRunning() local (_trfx)
+(
+  _trfx = 1380;
+  _trfx[0] = 0;
+  _trfx[1] = 0;
+  checkJSFX(_trfx);
+);
+
+function setSlider(nr,value) local(tr)
+(
+  tr = GetTrack(0,trfx[0]);
+  TrackFX_SetParam(tr,trfx[1],nr-1,value);
+);
+
+function init() local(n)
+(
+  RegReaSInHead  = 1;                      // written by JSFX
+  RegReaSInTail  = 2;                      // written by ReaS
+  RegReaSIn0     = 3;                      // written by JSFX
+  RegReaSOutHead = 21;                     // written by ReaS
+  RegReaSOutTail = 22;                     // written by JSFX
+  RegReaSOut0    = 23;                     // written by ReaS
+  ReaSBuffer     = 1000;
+  ReaSBufferSize = 256;
+  ReaSBufferHead = 0;
+  ReaSBufferTail = 0;
+  trfx           = 1280;
+  trfx[0]=7;     // make sure you initialize variables!!
+  trfx[1]=11;    // make sure you initialize variables!!
+
+  setSlider(RegReaSOutHead,0);
+  n = getSlider(RegReaSInHead);
+  (n<0) ? n=0;
+  (n>15) ? n=15;
+  setSlider(RegReaSInTail,n);  // empty buffer
+
+);
+
+function ValueOut(value)
+(
+  ReaSBuffer[ReaSBufferHead] = value;
+  ReaSBufferHead = (ReaSBufferHead + 1) % ReaSBufferSize;
+);
+
+function ReasInput(value)
+(
+  (strlen(evalValueIn)>0) ?  eval(sprintf(#,"%s(%d)",evalValueIn,value));
+);
+
+function block() local(value,ok)
+(
+  checkJSFX(trfx) ? (
+        // handle ReaS -> JSFX
+        ok = 1;
+        while ((ReaSBufferTail!=ReaSBufferHead) && (ok == 1))
+        (
+          outHead = getSlider(RegReaSOutHead);
+          outTail = getSlider(RegReaSOutTail);
+          (!bufferFull(outHead,outTail,16)) ?
+            (
+              value =ReaSBuffer[ReaSBufferTail];
+              setSlider(RegReaSOut0+outHead,value);
+              ReaSBufferTail = (ReaSBufferTail+1) % ReaSBufferSize;
+              setSlider(RegReaSOutHead, (outHead+1) % 16);
+            ) : ok = 0;
+        );
+
+        // handle JSFX -> ReaS
+        while (getSlider(RegReaSInTail) != getSlider(RegReaSInHead))
+        (
+          value = getSlider(RegReaSIn0+getSlider(RegReaSInTail));
+          setSlider(RegReaSInTail,(1+getSlider(RegReaSInTail)) % 16);
+          ReaSInput(value);
+        )
+  )
+);
+
+function _loop()
+(
+   (strlen(evalloop)>0) ? eval(sprintf(#,"%s()",evalloop));
+   block();
+   defer("_loop()");
+);
+
+function main()
+(
+  init();
+  (strlen(evalsetup)>0) ? eval(sprintf(#,"%s()",evalsetup));
+  _loop();
+);
+
+function fwInitialize(setup,loop,ValueIn)
+(
+  evalsetup  = setup;
+  evalloop   = loop;
+  evalValueIn = ValueIn;
+  main();
+);
