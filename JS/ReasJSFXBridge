@@ -153,6 +153,8 @@ function midiOut(value)
   midisend(0, (value >> 16) & 0xFF, (value >> 8) & 0xFF, (value >> 0) & 0xFF);
 );
 
+
+
 ///// AppStart
 /////////////// Use ReaSOutput and midiOutput to get things done...
 // in this example we send data to sysEx or midiOut.
@@ -177,6 +179,25 @@ function ToSysEx(value)
       slider20 = slider20+111;
       midisend_buf(0,SysExBuffer,SysExP);
     );
+);
+
+function receiveMidi(received)
+(
+  ReaSOut(JSFXMidiBuffer[0] << 16 + JSFXMidiBuffer[1] << 8 + JSFXMidiBuffer[2]);
+);
+
+function receiveSysEx(received) local(p,d0,d1,d2)
+(
+  p=0;
+  Slider40 = Slider40+1;
+  while (p<received)
+  (
+     d0 = JSFXMidiBuffer[p];
+     d1 = (p+1 < received) ? JSFXMidiBuffer[p+1] : 0;
+     d2 = (p+2 < received) ? JSFXMidiBuffer[p+2] : 0;
+     p +=3;
+     ReaSOut(d0 << 16 + d1 << 8 + d2);
+  )
 );
 
 function ReaSIn(value)
@@ -231,6 +252,10 @@ JSFXBufferSize = 256;
 JSFXBufferHead = 0;
 JSFXBufferTail = 0;
 
+JSFXMidiBuffer = 1400;
+JSFXMidiBufferSize = 256;
+JSFXMidiBufferReceived = 0;
+
 // empty buffers
 setSlider(RegJSFXOutHead,0);
 setSlider(RegJSFXOutTail,0);
@@ -240,10 +265,13 @@ setSlider(RegJSFXInTail,0);
 
 @block
         // handle MidiIn
-        while (midirecv(mpos, msg1, msg2, msg3)) (
-          midiIn(msg1 << 16 + msg2 << 8+ msg3);
-        );
-        checkSliders();
+           while (midirecv(offset, msg1, msg2, msg3)) (
+             midiIn(msg1 << 16 + msg2 << 8+ msg3);
+          );
+          while ((JSFXMidiBufferReceived = midirecv_buf(offset,JSFXMidiBuffer,JSFXMidiBufferSize)) > 0) (
+           (JSFXMidiBuffer[0]==0xF0) ? receiveSysEx(JSFXMidiBufferReceived) : receiveMidi(JSFXMidiBufferReceived);
+          );
+
 
         // handle JSFX -> ReaS
         ok=1;

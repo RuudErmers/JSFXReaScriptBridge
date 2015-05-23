@@ -1,15 +1,19 @@
-@import lib/framework.eel
+// Select one of the two frameworks in the two lines below...
+
+// @import lib/JSFXframework.eel
+
+@import lib/TCPframework.eel
 @import lib/functions.eel
 
 function midiOut(data0,data1,data2)
 (
-  JSFXOut(+ (data0 << 16) + (data1 << 8) + (data2 << 0));
+  ValueOut(+ (data0 << 16) + (data1 << 8) + (data2 << 0));
 );
 
-function onJSFXIn(value) local(cnr,cval)
+function onValueIn(value) local(cnr,cval)
 (
   // leave status unchanged, add 1 to databyte0 and add 1 to databyte2
-  JSFXOut(value+257);
+  ValueOut(value+257);
   // output cbr,cval over SysEx
   cnr = (value >> 8) & 0xFF;
   cval = value & 0xFF;
@@ -20,14 +24,14 @@ function onJSFXIn(value) local(cnr,cval)
 function setup()
 (
   ToConsole("");
-  ToConsole("Welcome to the JSFX <-> ReaS bridge\n");
-  ToConsole(JSFXRunning() ? "JSFX is running" : "JSFX is not (yet) running!");
+  ToConsole("Welcome to the ReaS Outside world bridge\n");
+  ToConsole(FrameworkRunning() ? "Framework is running" : "Framework is not (yet) running!");
 );
 
 // to use the framework, call fwInitialize with 3 function callbacks:
 // 1. setup()
 // 2. loop()       // in this case: empty
-// 3. JSFXIn(value)
+// 3. onValueIn(value)
 
-fwInitialize("setup","","onJSFXIn");
+fwInitialize("setup","","onValueIn");
 

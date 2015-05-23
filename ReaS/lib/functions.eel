@@ -57,25 +57,5 @@ function findplugin(pluginname,varargs) local(tr,trCount,trIndex,fxCount,fxIndex
   found;
 );
 
-function checkJSFX(trfx) local(pluginname)
-(
-  pluginname = "ReasJSFXBridge";
-  !matchplugin(pluginname,trfx[0],trfx[1]) ?
-    findplugin(pluginname,trfx)
-  :1;
-);
-
-function JSFXRunning() local (_trfx)
-(
-  _trfx = 1380;
-  _trfx[0] = 0;
-  _trfx[1] = 0;
-  checkJSFX(_trfx);
-);
-
-function JSFXOut(value)
-(
-  eval(sprintf(#,"JSFXOut(%d,%d,%d);",value));
-);
 
 
