@@ -15,6 +15,7 @@
 // receivebuffer wil store value as 24 bits
 // in this case 1 item is used with value 0x90504A
 
+
 function checkConnectionClose(close,open)
 (
   (tcp_send(connection,"#") <= 0) ?
@@ -28,9 +29,16 @@ function checkConnectionClose(close,open)
 function checkConnection()
 (
   (connection <= 0) ? (
-    connection = tcp_connect("127.0.0.1",1200,0); // non blocking connection
-    (connection > 0) ?
-      checkConnectionClose("","Server Found and connected\n");
+    (connectionTried < time()) ?
+     (
+       connectionTried = time();
+       ToConsole("(re)Trying connection...\n");
+       connection = tcp_connect("127.0.0.1",1200,0); // non blocking connection
+       (connection > 0) ?
+        checkConnectionClose("Connection Found But No Write possible\n","Server Found and connected\n")
+       :
+        ToConsole("Trying failed");
+     );
   ) :
   (connectionTime < time()) ?
    (
@@ -43,14 +51,10 @@ function sendString(s)
 (
   checkConnection();
   (connection>0) ? (
+//     ToConsole(sprintf(#,"TCP sendstring: %s\n",s));
      tcp_send(connection,s);
      checkConnectionClose("Server Aborted\n","");
   )
-);
-
-function midiOut(status,data1,data2)
-(
-  sendString(sprintf(#,"%02X%02X%02X",status,data1,data2));
 );
 
 function putBuffer(Value)
@@ -96,8 +100,6 @@ function endChar()
 function addToReceiveBuffer(nrBytes) local(i,v)
 (
 // B01105#
-  ToConsole(sprintf(#,"Data Received: %d\n",nrBytes));
-  ToConsole(localReceiveBuffer);
 
   i=0;
   while (i<nrBytes)

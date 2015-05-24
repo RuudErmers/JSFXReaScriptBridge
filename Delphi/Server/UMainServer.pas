@@ -3,8 +3,8 @@ unit UMainServer;
 interface
 
 uses
-  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs,  IdCustomTCPServer, IdTCPServer, Vcl.StdCtrls,UMidiServer ;
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,UMidiEvent,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs,  IdCustomTCPServer, IdTCPServer, Vcl.StdCtrls,UMidiServerTCP ;
 
 type
   TFormMain = class(TForm)
@@ -23,7 +23,7 @@ type
     procedure Button5Click(Sender: TObject);
   private
     { Private declarations }
-    FMidiServer:TMidiServer;
+    FMidiServer:TMidiServerTCP;
     procedure OnMidiInEvent(status, data1, data2: integer);
     procedure OnMidiInSysExEvent(sysex: TSysExData);
   public
@@ -79,8 +79,8 @@ end;
 
 procedure TFormMain.FormCreate(Sender: TObject);
 begin
-  Left:=2000;
-  FMidiServer:=TMidiServer.Create(1200);
+  Left:=200;
+  FMidiServer:=TMidiServerTCP.Create(1200);
   FMidiServer.OnMidiInEvent:=OnMidiInEvent;
   FMidiServer.OnMidiInSysExEvent:=OnMidiInSysExEvent;
 end;
